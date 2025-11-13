@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.env/
+.venv/
+venv/
+ENV/
+env/
+
+# CDK outputs
+cdk.out/
+cdk.context.json
+
+# Lambda build artifacts
+*.zip
+
+# macOS
+.DS_Store
+
+# PyCharm & VSCode
+.idea/
+.vscode/
+
+# Node (si jamais tu ajoutes npm plus tard)
+node_modules/
+
+# Logs
+*.log
+
+# AWS SAM / Local debug
+.aws-sam/

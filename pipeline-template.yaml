@@ -1,0 +1,129 @@
+Resources:
+  CodeBuildRole728CBADE:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/AWSCodeBuildDeveloperAccess
+    Metadata:
+      aws:cdk:path: PipelineStack/CodeBuildRole/Resource
+  CodeBuildRoleDefaultPolicy829527DE:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action: lambda:UpdateFunctionCode
+            Effect: Allow
+            Resource: "*"
+          - Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Effect: Allow
+            Resource:
+              - Fn::Join:
+                  - ""
+                  - - arn:aws:logs:eu-west-3:309232818774:log-group:/aws/codebuild/
+                    - Ref: LambdaUpdateProject16B7C95A
+                    - :*
+              - Fn::Join:
+                  - ""
+                  - - arn:aws:logs:eu-west-3:309232818774:log-group:/aws/codebuild/
+                    - Ref: LambdaUpdateProject16B7C95A
+          - Action:
+              - codebuild:BatchPutCodeCoverages
+              - codebuild:BatchPutTestCases
+              - codebuild:CreateReport
+              - codebuild:CreateReportGroup
+              - codebuild:UpdateReport
+            Effect: Allow
+            Resource:
+              Fn::Join:
+                - ""
+                - - arn:aws:codebuild:eu-west-3:309232818774:report-group/
+                  - Ref: LambdaUpdateProject16B7C95A
+                  - -*
+        Version: "2012-10-17"
+      PolicyName: CodeBuildRoleDefaultPolicy829527DE
+      Roles:
+        - Ref: CodeBuildRole728CBADE
+    Metadata:
+      aws:cdk:path: PipelineStack/CodeBuildRole/DefaultPolicy/Resource
+  LambdaUpdateProject16B7C95A:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Cache:
+        Type: NO_CACHE
+      EncryptionKey: alias/aws/s3
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        EnvironmentVariables:
+          - Name: FUNCTION_NAME
+            Type: PLAINTEXT
+            Value:
+              Fn::ImportValue: ApplicationStack:ExportsOutputRefAppLambda46D23914F743CC79
+          - Name: AWS_DEFAULT_REGION
+            Type: PLAINTEXT
+            Value: eu-west-3
+        Image: aws/codebuild/standard:7.0
+        ImagePullCredentialsType: CODEBUILD
+        PrivilegedMode: false
+        Type: LINUX_CONTAINER
+      ServiceRole:
+        Fn::GetAtt:
+          - CodeBuildRole728CBADE
+          - Arn
+      Source:
+        BuildSpec: |-
+          {
+            "version": "0.2",
+            "phases": {
+              "install": {
+                "runtime-versions": {
+                  "python": "3.11"
+                }
+              },
+              "build": {
+                "commands": [
+                  "echo 'Packing lambda code...'",
+                  "cd lambda",
+                  "zip -r ../function.zip .",
+                  "cd ..",
+                  "echo 'Updating Lambda function code...'",
+                  "aws lambda update-function-code --function-name $FUNCTION_NAME --zip-file fileb://function.zip --region $AWS_DEFAULT_REGION"
+                ]
+              }
+            },
+            "artifacts": {
+              "files": [
+                "function.zip"
+              ]
+            }
+          }
+        Type: NO_SOURCE
+    Metadata:
+      aws:cdk:path: PipelineStack/LambdaUpdateProject/Resource
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/41SXUsjMRT9LeZR0nGriNC3sS1SqLul7fpSpNwmtzWaSYbkjjKE+e9LMrGrlF36FHLOued+XhfXw9vixwV8+IGQbwOtdkVYEYg3Dh9+GxRURVhajZvAwPumQnnfslFgtVNGqBp0KYRtDLERu2Q8a2JAKUhZk+Cu44GBlI9g4IByYbUSLRttAqu+IqXL8uesX9u/0q/gZ+oTlgjEy8xoZfDIsUt2Bvl/33+zz3y8N7Fd3sPR8ZhsbSNzUsMpLOWKgLBCQ/5b2nPhVEZfQceFlbhrlJZFWDj7ioI2gSVgVaPIi0Lzrpw10SSuM9GzCg4Yf9TWmHUS99BoGtuqbgjXPXH/ezafbB+mP6fLcj7crh7L+ZxxpmL8TObI9Fs0Wh8nl6PHvybT5MA48ygcku8vw40dSjSkQPts4rC2XpF1bX8aPB7eu9J4QMlGe9Aeu2/NPIFTsNN4NEijTleVZtQPpOv4Er1tnMC8hUVLL9Zc3RTDYXF38eqVGrjGkKqwWPbvH+cdfzcrAwAA
+    Metadata:
+      aws:cdk:path: PipelineStack/CDKMetadata/Default
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+
